@@ -16,8 +16,9 @@ class Config:
   SQLALCHEMY_DATABASE_URI = os.environ.get(
       'DATABASE_URL',
       # 기본값에는 비밀번호를 두지 않는다 — 반드시 .env 의 DATABASE_URL 을 쓴다
-      'mysql+pymysql://<user>:<password>@localhost:3306/my_new_board_db',
+      'mysql+pymysql://<user>:<password>@localhost:3306/<database>',
   )
+
   SQLALCHEMY_TRACK_MODIFICATIONS = False
 
   # ── 로그인 토큰 ──

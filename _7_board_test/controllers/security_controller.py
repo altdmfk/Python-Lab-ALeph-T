@@ -47,18 +47,42 @@ def _create_security_post(ev):
 @security_bp.route('/events', methods=['POST'])
 @require_api_key
 def create_security_event():
-  data = request.get_json(silent=True) or {}      # JSON 아니어도 500 대신 400
+  data = request.get_json(silent=True)
+  if isinstance(data, list):
+    data = data[0] if data and isinstance(data[0], dict) else {}
+  elif not isinstance(data, dict):
+    data = {}
+
+
   student = (data.get('student') or '').strip()
   src_ip = data.get('src_ip')
   decision = data.get('decision')
+
+  # 1) is_deny 필드로 넘어온 경우
+  if 'is_deny' in data:
+    is_deny = data['is_deny']
+    if is_deny is True or str(is_deny).strip().lower() in ('true', '1'):
+      decision = 'deny'
+    else:
+      decision = 'allow'
+  # 2) decision 값 자체에 true/false(is_deny 값)가 들어온 경우도 지원
+  elif decision is True or str(decision).strip().lower() in ('true', '1'):
+    decision = 'deny'
+  elif decision is False or str(decision).strip().lower() in ('false', '0'):
+    decision = 'allow'
+
   if not student or not src_ip or decision not in ('allow', 'deny'):
-    return jsonify({'msg': 'student, src_ip, decision(allow|deny) 은 필수입니다.'}), 400
+    return jsonify({'msg': 'student, src_ip, decision(allow|deny 또는 is_deny) 은 필수입니다.'}), 400
+
+  severity = str(data.get('severity') or 'Low')[:10]
+  reason = str(data.get('reason') or '')[:200] if data.get('reason') is not None else None
+  users = str(data.get('users') or '')[:255] if data.get('users') is not None else None
 
   ev = SecurityEvent(
-      student=student[:50], src_ip=src_ip,
+      student=student[:50], src_ip=str(src_ip)[:45],
       fail_count=int(data.get('fail_count') or 0), decision=decision,
-      severity=data.get('severity', 'Low'), reason=data.get('reason'),
-      users=data.get('users'), last_seen=data.get('last_seen'),
+      severity=severity, reason=reason,
+      users=users, last_seen=data.get('last_seen'),
       window_min=data.get('window_min'),
       source=data.get('source', 'login_guard'),
       generated_at=data.get('generated_at'),
