@@ -85,6 +85,8 @@ B4 n8n Code 노드 언어 함정 및 해결
 
 ![D6 n8n Executions 에서 게시판 저장 노드가 초록이고 응답이 201](images/D6.png)
 
+![보안 대시보드](images/dashboard.png)
+
 
 ## AI 활용 구분
 - AI 에게 맡긴 일: 파이썬 파싱 및 판정 코드 작성, MySQL 쿼리 및 터미널 인코딩 오류 해결 명령어 생성
