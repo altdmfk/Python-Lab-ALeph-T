@@ -18,10 +18,11 @@ def register():
     return jsonify({'msg': '이미 존재하는 사용자입니다.'}), 400
 
   user = User(username=data['username'],
-              password=generate_password_hash(data['password']))
+              password=generate_password_hash(data['password']),
+              role=0) # 최초 가입 시 일반회원(0)
   db.session.add(user)
   db.session.commit()
-  return jsonify({'msg': '회원가입 성공'}), 201
+  return jsonify({'msg': '회원가입 성공', 'user': user.to_dict()}), 201
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -32,4 +33,22 @@ def login():
     return jsonify({'msg': '아이디 또는 비밀번호가 잘못되었습니다.'}), 401
 
   token = create_access_token(identity=str(user.id))
-  return jsonify(access_token=token, username=user.username)
+  return jsonify(access_token=token,
+                 username=user.username,
+                 role=user.role,
+                 role_name=user.role_name)
+
+
+@auth_bp.route('/me', methods=['GET'])
+def me():
+  """현재 토큰의 사용자 정보 조회"""
+  from flask_jwt_extended import get_jwt_identity, jwt_required
+  @jwt_required()
+  def _get():
+    uid = get_jwt_identity()
+    user = db.session.get(User, int(uid))
+    if not user:
+      return jsonify({'msg': '사용자를 찾을 수 없습니다.'}), 404
+    return jsonify(user.to_dict())
+  return _get()
+

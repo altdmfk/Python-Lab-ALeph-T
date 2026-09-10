@@ -4,12 +4,18 @@
     <div class="flex justify-between items-center h-16">
 
       <!-- 로고 -->
-      <a href="/" class="text-xl font-bold text-indigo-600 shrink-0">✨ 모던 게시판</a>
+      <a href="/" class="text-xl font-bold text-indigo-600 shrink-0">✨ 모던 카페 게시판</a>
 
       <!-- 데스크톱 메뉴 (md 이상에서만 보임) -->
       <nav class="hidden md:flex items-center space-x-1">
         <a href="/" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition">게시판</a>
-        <a href="/dashboard" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition">보안 대시보드</a>
+        <a href="/gold" class="px-3 py-2 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition flex items-center gap-1">
+          <span>👑</span> 골드 라운지
+        </a>
+        <a href="/admin" class="px-3 py-2 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition flex items-center gap-1">
+          <span>⚙️</span> 관리자
+        </a>
+        <a href="/dashboard" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition">보안 대시보드</a>
         <a href="/public-posts" class="px-3 py-2 rounded-lg text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition">부산 테마여행</a>
         <span id="auth-nav" class="flex items-center space-x-2 ml-2"></span>
       </nav>
@@ -30,12 +36,15 @@
     <!-- 모바일 드롭다운 메뉴 -->
     <nav id="mobile-menu" class="md:hidden hidden pb-3 space-y-1 border-t border-gray-100 pt-2">
       <a href="/" class="block px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">게시판</a>
+      <a href="/gold" class="block px-3 py-2 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100">👑 골드 라운지</a>
+      <a href="/admin" class="block px-3 py-2 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100">⚙️ 관리자</a>
       <a href="/dashboard" class="block px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">보안 대시보드</a>
       <a href="/public-posts" class="block px-3 py-2 rounded-lg text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100">부산 테마여행</a>
       <span id="auth-nav-mobile" class="block px-3 py-2 space-x-2"></span>
     </nav>
   </div>
 </header>
+
 
 <script>
   // 햄버거 토글 — 아이콘 교체 + aria-expanded 갱신(접근성)
@@ -64,5 +73,58 @@
         btn.setAttribute('aria-expanded', 'false');
       }
     });
+
+    // 전역 네비게이션 인증 상태 렌더러
+    function renderNavAuth() {
+      const token = localStorage.getItem('token');
+      const username = localStorage.getItem('username');
+      const role = parseInt(localStorage.getItem('role') ?? '0', 10);
+      const navDesktop = document.getElementById('auth-nav');
+      const navMobile = document.getElementById('auth-nav-mobile');
+
+      let roleBadge = '';
+      if (role === 2) {
+        roleBadge = '<span class="px-2 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-800 border border-purple-200">⚡ 관리자</span>';
+      } else if (role === 1) {
+        roleBadge = '<span class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">👑 골드</span>';
+      } else {
+        roleBadge = '<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200">🌱 일반</span>';
+      }
+
+      if (token && username) {
+        const html = `
+          <div class="flex items-center space-x-2">
+            ${roleBadge}
+            <span class="text-sm font-semibold text-gray-800">${username}</span>
+            <button onclick="globalLogout()" class="text-xs text-red-500 hover:text-red-700 hover:underline">로그아웃</button>
+          </div>
+        `;
+        if (navDesktop) navDesktop.innerHTML = html;
+        if (navMobile) navMobile.innerHTML = html;
+      } else {
+        const html = `
+          <div class="flex items-center space-x-2">
+            <a href="/?login=1" class="text-sm font-medium text-indigo-600 hover:underline">로그인</a>
+            <a href="/?register=1" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">회원가입</a>
+          </div>
+        `;
+        if (navDesktop) navDesktop.innerHTML = html;
+        if (navMobile) navMobile.innerHTML = html;
+      }
+    }
+
+    window.globalLogout = function () {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
+      localStorage.removeItem('role_name');
+      alert('로그아웃 되었습니다.');
+      window.location.href = '/';
+    };
+
+    window.addEventListener('DOMContentLoaded', renderNavAuth);
+    // 즉시 실행(DOM이 이미 로드되었을 경우)
+    if (document.readyState !== 'loading') renderNavAuth();
   })();
 </script>
+

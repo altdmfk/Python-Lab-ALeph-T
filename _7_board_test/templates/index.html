@@ -86,7 +86,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateAuthUI();
             loadPosts(true);
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('login')) openAuthModal(true);
+            else if (params.get('register')) openAuthModal(false);
         });
+
 
         function updateAuthUI() {
             const nav = document.getElementById('auth-nav');
@@ -199,13 +203,16 @@
                     currentUsername = data.username;
                     localStorage.setItem('token', token);
                     localStorage.setItem('username', currentUsername);
+                    localStorage.setItem('role', data.role !== undefined ? data.role : 0);
+                    localStorage.setItem('role_name', data.role_name || '일반회원');
                     updateAuthUI();
                     closeAuthModal();
                     loadPosts(true);
                 } else {
-                    alert('회원가입 완료! 로그인해주세요.');
+                    alert('회원가입 완료! (일반 회원 등급으로 가입되었습니다. 로그인해주세요.)');
                     openAuthModal(true);
                 }
+
             } else {
                 alert(data.msg || '오류가 발생했습니다.');
             }

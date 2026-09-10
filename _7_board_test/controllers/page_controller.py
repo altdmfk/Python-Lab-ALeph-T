@@ -23,3 +23,16 @@ def public_posts_page():
 @page_bp.route('/public-posts/<int:uc_seq>')
 def public_post_detail_page(uc_seq):
   return render_template('public_detail.html', uc_seq=uc_seq)
+
+
+@page_bp.route('/gold')
+def gold_page():
+  """골드 회원 전용 라운지 (등급 1 이상)"""
+  return render_template('gold.html')
+
+
+@page_bp.route('/admin')
+def admin_page():
+  """관리자 전용 회원 관리 페이지 (등급 2)"""
+  return render_template('admin.html')
+
