@@ -31,6 +31,16 @@ class Config:
   # 거부(deny) 시 게시판에 '보안' 공지글 자동 등록
   AUTO_POST_ON_DENY = os.environ.get('AUTO_POST_ON_DENY', '0') == '1'
 
+  # ── 관리자(인가) REST (n8n·회수봇이 호출) ──
+  # POST /api/admin/revoke 등 기계 호출용 키. 비어 있으면 SECURITY_API_KEY 로 대체.
+  # (사람은 관리자 페이지에서 JWT + role=admin 으로 접근)
+  ADMIN_API_KEY = os.environ.get('ADMIN_API_KEY', '') or SECURITY_API_KEY
+  # admin 을 가져도 되는 계정(정책 허용목록). 회수봇·위반조회의 기준.
+  # 쉼표로 구분: "lsy,instructor". 비어 있으면 모든 admin 을 '위반'으로 본다.
+  ADMIN_ALLOWLIST = [
+      u.strip() for u in os.environ.get('ADMIN_ALLOWLIST', '').split(',') if u.strip()
+  ]
+
   # ── 공공데이터(부산 테마여행) ──
   PUBLIC_API_KEY = os.environ.get('PUBLIC_API_KEY')
   PUBLIC_API_URL = (

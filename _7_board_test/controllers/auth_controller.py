@@ -1,10 +1,13 @@
-"""회원가입 / 로그인."""
+"""회원가입 / 로그인 / 내 정보."""
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from extensions import db
 from models import User
+from models.user import ROLE_LABEL
+
+from .rbac import current_user
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -32,4 +35,25 @@ def login():
     return jsonify({'msg': '아이디 또는 비밀번호가 잘못되었습니다.'}), 401
 
   token = create_access_token(identity=str(user.id))
-  return jsonify(access_token=token, username=user.username)
+  # role 을 함께 내려주면 화면이 곧바로 등급에 맞는 메뉴를 그릴 수 있다.
+  return jsonify(access_token=token, username=user.username,
+                 role=user.role, role_label=ROLE_LABEL.get(user.role, user.role))
+
+
+@auth_bp.route('/me', methods=['GET'])
+def me():
+  """지금 로그인한 사람이 누구이고 어떤 등급인지 — 화면의 등급 확인용.
+
+  토큰은 localStorage 에 있어서 페이지를 열 때 서버로 자동 전송되지 않는다.
+  그래서 화면 JS 가 이 API 를 불러 등급을 확인하고 예외 화면 여부를 정한다."""
+  user = current_user()
+  if user is None:
+    return jsonify({'msg': '로그인이 필요합니다.'}), 401
+  return jsonify({
+      'id': user.id,
+      'username': user.username,
+      'role': user.role,
+      'role_label': ROLE_LABEL.get(user.role, user.role),
+      'is_gold': user.is_gold,
+      'is_admin': user.is_admin,
+  })

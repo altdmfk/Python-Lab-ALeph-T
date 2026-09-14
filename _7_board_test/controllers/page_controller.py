@@ -15,6 +15,20 @@ def dashboard():
   return render_template('dashboard.html')
 
 
+@page_bp.route('/gold')
+def gold_page():
+  """골드 등급 전용 화면. 페이지 자체는 항상 렌더되고,
+  등급 확인은 화면 JS 가 /api/auth/me 로 한다(모자라면 예외 화면).
+  실제 데이터 차단은 서버(/api/gold/posts)가 담당한다."""
+  return render_template('gold.html')
+
+
+@page_bp.route('/admin')
+def admin_page():
+  """관리자 페이지 — 회원 역할(인가) 부여/회수. admin 계정 로그인 필요."""
+  return render_template('admin.html')
+
+
 @page_bp.route('/public-posts')
 def public_posts_page():
   return render_template('public_posts.html')

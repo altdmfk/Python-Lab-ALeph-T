@@ -10,10 +10,30 @@
 실행:  python app.py   →  http://localhost:5000
 """
 from flask import Flask
+from sqlalchemy import inspect, text
 
 from config import Config
 from controllers import all_blueprints
 from extensions import db, jwt
+
+
+def _ensure_schema():
+  """기존 users 표에 role 관련 컬럼이 없으면 추가(가벼운 자동 마이그레이션).
+
+  db.create_all() 은 '없는 표'만 만들고 '기존 표'는 손대지 않는다. 이미 운영 중인
+  users 표에 role/감사 컬럼을 더하려면 ALTER 가 필요하므로, 여기서 컬럼 유무를
+  검사해 없을 때만 한 번 추가한다(있으면 조용히 통과 — 여러 번 켜도 안전)."""
+  cols = {c['name'] for c in inspect(db.engine).get_columns('users')}
+  adds = {
+      'role': "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
+      'role_granted_by': "ALTER TABLE users ADD COLUMN role_granted_by VARCHAR(80) NULL",
+      'role_granted_at': "ALTER TABLE users ADD COLUMN role_granted_at DATETIME NULL",
+      'role_reason': "ALTER TABLE users ADD COLUMN role_reason VARCHAR(200) NULL",
+  }
+  with db.engine.begin() as conn:
+    for name, ddl in adds.items():
+      if name not in cols:
+        conn.execute(text(ddl))
 
 
 def create_app(config_class=Config):
@@ -31,6 +51,7 @@ def create_app(config_class=Config):
   # 테이블 생성 (models 를 import 한 뒤여야 한다 — controllers 가 이미 import 함)
   with app.app_context():
     db.create_all()
+    _ensure_schema()   # 기존 users 표에 role 컬럼 보강
 
   return app
 
