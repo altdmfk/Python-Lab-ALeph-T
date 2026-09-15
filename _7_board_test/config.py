@@ -25,6 +25,10 @@ class Config:
   JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-only-change-me')
   JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)
 
+  # ── Graylog GELF (앱이 로그인 실패 등 보안 로그를 SIEM 으로 전송) ──
+  GELF_HOST = os.environ.get('GELF_HOST', 'localhost')
+  GELF_PORT = int(os.environ.get('GELF_PORT', '12201'))
+
   # ── 보안 이벤트 REST (n8n 이 호출) ──
   # 값이 비어 있으면 POST 는 항상 401 (fail-closed: 실수로 열어두지 않는다)
   SECURITY_API_KEY = os.environ.get('SECURITY_API_KEY', '')

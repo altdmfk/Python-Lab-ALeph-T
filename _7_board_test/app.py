@@ -9,12 +9,22 @@
 
 실행:  python app.py   →  http://localhost:5000
 """
-from flask import Flask
+from flask import Flask, jsonify, request
 from sqlalchemy import inspect, text
 
 from config import Config
 from controllers import all_blueprints
 from extensions import db, jwt
+from models import BlockedIP
+
+
+def _client_ip():
+  """요청의 실제 클라이언트 IP. 프록시(n8n·nginx) 뒤면 X-Forwarded-For 첫 홉을 신뢰.
+  (랩 한정 규칙 — 실서비스는 신뢰 프록시 목록으로 검증해야 스푸핑을 막는다.)"""
+  xff = request.headers.get('X-Forwarded-For', '')
+  if xff:
+    return xff.split(',')[0].strip()
+  return request.remote_addr or ''
 
 
 def _ensure_schema():
@@ -29,6 +39,11 @@ def _ensure_schema():
       'role_granted_by': "ALTER TABLE users ADD COLUMN role_granted_by VARCHAR(80) NULL",
       'role_granted_at': "ALTER TABLE users ADD COLUMN role_granted_at DATETIME NULL",
       'role_reason': "ALTER TABLE users ADD COLUMN role_reason VARCHAR(200) NULL",
+      # ── 계정 잠금(브루트포스 대응) ──
+      'is_locked': "ALTER TABLE users ADD COLUMN is_locked TINYINT(1) NOT NULL DEFAULT 0",
+      'locked_at': "ALTER TABLE users ADD COLUMN locked_at DATETIME NULL",
+      'lock_reason': "ALTER TABLE users ADD COLUMN lock_reason VARCHAR(200) NULL",
+      'failed_logins': "ALTER TABLE users ADD COLUMN failed_logins INT NOT NULL DEFAULT 0",
   }
   with db.engine.begin() as conn:
     for name, ddl in adds.items():
@@ -52,6 +67,21 @@ def create_app(config_class=Config):
   with app.app_context():
     db.create_all()
     _ensure_schema()   # 기존 users 표에 role 컬럼 보강
+
+  @app.before_request
+  def _block_ip_guard():
+    """실차단(active response): 차단된 IP 의 요청은 앱에 닿기 전에 403 으로 되돌린다.
+
+    - 관리자 API(/api/admin/*) 는 예외 — 그래야 운영자·n8n 이 차단/해제를 계속 할 수 있다
+      (자기 자신을 잠가 복구 불능이 되는 것을 막는 안전장치).
+    - 매 요청 blocked_ips 표를 조회한다. 랩 규모에선 충분하고, 실서비스는
+      캐시(예: Redis)나 방화벽(nftables) 계층으로 올려야 한다."""
+    if request.path.startswith('/api/admin'):
+      return None
+    ip = _client_ip()
+    if ip and db.session.get(BlockedIP, ip):
+      return jsonify({'msg': '차단된 IP 입니다(관리자에게 문의).', 'ip': ip, 'blocked': True}), 403
+    return None
 
   return app
 
